@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { PlatformType, ConvertedLink, PlatformConfig } from '../types';
+import { PlatformType, ConvertedLink, PlatformConfig, UserWallet, PayoutRequest } from '../types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -141,7 +141,7 @@ export function extractTitle(url: string): string {
   } catch {
     // ignore
   }
-  return 'Product Link';
+  return 'Sản phẩm mua sắm';
 }
 
 export function generateHash(str: string): string {
@@ -154,11 +154,47 @@ export function generateHash(str: string): string {
   return (positive + 'x9k2m7q').slice(0, 6);
 }
 
-export function createCleanShortLink(originalUrl: string, subId: string = 'default'): ConvertedLink {
+/**
+ * Safe Cashback Calculation Model:
+ * 1. Base commission rate: Shopee 7%, TikTok 6%, Lazada 5%
+ * 2. Deduct 10% PIT Tax at source (x 0.9)
+ * 3. Share 60% with user
+ * 4. Cap max cashback per item at 50.000 VNĐ to prevent overflow loss
+ */
+export function calculateEstimatedCashback(platform: PlatformType): { rate: number; cashback: number } {
+  let rate = 6.5;
+  if (platform === 'shopee') rate = 7.5;
+  if (platform === 'tiktok') rate = 6.0;
+  if (platform === 'lazada') rate = 5.5;
+
+  // Assume avg purchase 350.000 VNĐ for estimated display
+  const samplePrice = 350000;
+  const grossCommission = samplePrice * (rate / 100);
+  const netCommission = grossCommission * 0.9; // After 10% PIT Tax
+  const userShare = netCommission * 0.6; // 60% user cashback
+
+  const cashback = Math.min(Math.round(userShare / 500) * 500, 50000);
+
+  return { rate, cashback };
+}
+
+export function getOrCreateDeviceId(): string {
+  const key = 'cashback_device_id_v2';
+  let deviceId = localStorage.getItem(key);
+  if (!deviceId) {
+    deviceId = `dev_${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem(key, deviceId);
+  }
+  return deviceId;
+}
+
+export function createCleanShortLink(originalUrl: string, subId?: string): ConvertedLink {
   const platform = detectPlatform(originalUrl);
   const normalizedUrl = normalizeUrl(originalUrl, platform);
   const hash = generateHash(originalUrl + Date.now().toString());
   const title = extractTitle(originalUrl);
+  const { rate, cashback } = calculateEstimatedCashback(platform);
+  const activeSubId = subId || getOrCreateDeviceId();
 
   let shortUrl = '';
   if (platform === 'shopee') {
@@ -175,12 +211,15 @@ export function createCleanShortLink(originalUrl: string, subId: string = 'defau
     id: `link_${Date.now()}_${hash}`,
     originalUrl,
     normalizedUrl,
-    affiliateUrl: originalUrl, // Direct link
+    affiliateUrl: originalUrl,
     shortUrl,
     platform,
-    subId,
+    subId: activeSubId,
     createdAt: new Date().toISOString(),
     title,
+    estimatedCashback: cashback,
+    commissionRate: rate,
+    status: 'pending',
   };
 }
 

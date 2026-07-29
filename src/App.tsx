@@ -3,14 +3,17 @@ import { Header } from './components/Header';
 import { UrlConverter } from './components/UrlConverter';
 import { ConversionResult } from './components/ConversionResult';
 import { QrCodeModal } from './components/QrCodeModal';
+import { WalletModal } from './components/WalletModal';
 import { HistoryList } from './components/HistoryList';
 import { BatchConverter } from './components/BatchConverter';
 import { Footer } from './components/Footer';
-import { ConvertedLink, ThemeMode } from './types';
+import { ConvertedLink, ThemeMode, UserWallet, PayoutRequest } from './types';
+import { getOrCreateDeviceId } from './lib/utils';
 import { Link2, Layers, History } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'short_link_history_v2';
 const LOCAL_STORAGE_THEME_KEY = 'short_link_theme_v2';
+const LOCAL_STORAGE_WALLET_KEY = 'short_link_wallet_v2';
 
 export default function App() {
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -28,9 +31,25 @@ export default function App() {
     }
   });
 
+  const [wallet, setWallet] = useState<UserWallet>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_WALLET_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return {
+      deviceId: getOrCreateDeviceId(),
+      pendingBalance: 0,
+      availableBalance: 0,
+      totalEarned: 0,
+    };
+  });
+
   const [latestConverted, setLatestConverted] = useState<ConvertedLink | null>(null);
   const [qrModalLink, setQrModalLink] = useState<ConvertedLink | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   // Sync dark mode class on html tag
   useEffect(() => {
@@ -57,7 +76,7 @@ export default function App() {
     }
   }, [theme]);
 
-  // Sync history to localStorage
+  // Sync history & wallet to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(history));
@@ -66,13 +85,38 @@ export default function App() {
     }
   }, [history]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_WALLET_KEY, JSON.stringify(wallet));
+    } catch (e) {
+      console.error('Failed to save wallet to localStorage', e);
+    }
+  }, [wallet]);
+
   const handleNewConversion = (link: ConvertedLink) => {
     setLatestConverted(link);
     setHistory((prev) => [link, ...prev.filter((item) => item.originalUrl !== link.originalUrl)]);
+
+    // Update estimated pending balance
+    if (link.estimatedCashback) {
+      setWallet((prev) => ({
+        ...prev,
+        pendingBalance: prev.pendingBalance + (link.estimatedCashback || 0),
+        totalEarned: prev.totalEarned + (link.estimatedCashback || 0),
+      }));
+    }
   };
 
   const handleAddBatchToHistory = (batch: ConvertedLink[]) => {
     setHistory((prev) => [...batch, ...prev]);
+    const addedCashback = batch.reduce((sum, item) => sum + (item.estimatedCashback || 0), 0);
+    if (addedCashback > 0) {
+      setWallet((prev) => ({
+        ...prev,
+        pendingBalance: prev.pendingBalance + addedCashback,
+        totalEarned: prev.totalEarned + addedCashback,
+      }));
+    }
   };
 
   const handleDeleteHistoryLink = (id: string) => {
@@ -92,6 +136,16 @@ export default function App() {
     setIsQrModalOpen(true);
   };
 
+  const handleRequestPayout = (req: Omit<PayoutRequest, 'id' | 'createdAt' | 'status'>) => {
+    setWallet((prev) => ({
+      ...prev,
+      availableBalance: Math.max(0, prev.availableBalance - req.amount),
+      bankName: req.bankName,
+      accountNumber: req.accountNumber,
+      accountName: req.accountName,
+    }));
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 transition-colors font-sans antialiased relative overflow-x-hidden">
       {/* Background Glow Elements */}
@@ -105,14 +159,16 @@ export default function App() {
         theme={theme}
         setTheme={setTheme}
         convertedCount={history.length}
+        wallet={wallet}
+        onOpenWalletModal={() => setIsWalletModalOpen(true)}
       />
 
       {/* Main Container */}
       <main className="relative z-10 flex-1 max-w-4xl w-full mx-auto px-4 py-6 sm:py-8 space-y-6">
-        {/* Description Subtitle */}
+        {/* Subtitle */}
         <div className="text-center max-w-xl mx-auto mb-2">
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-            Dán đường link Shopee, TikTok Shop hoặc Lazada để làm sạch và tạo đường dẫn mua sắm.
+            Dán đường link Shopee, TikTok Shop hoặc Lazada để làm sạch và tích luỹ hoàn tiền mua sắm.
           </p>
         </div>
 
@@ -203,6 +259,14 @@ export default function App() {
         isOpen={isQrModalOpen}
         onClose={() => setIsQrModalOpen(false)}
         link={qrModalLink}
+      />
+
+      {/* Wallet Modal */}
+      <WalletModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+        wallet={wallet}
+        onRequestPayout={handleRequestPayout}
       />
 
       {/* Footer */}

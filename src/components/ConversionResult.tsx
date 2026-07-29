@@ -5,7 +5,9 @@ import {
   ExternalLink, 
   QrCode, 
   CheckCircle2,
-  FileText
+  FileText,
+  Coins,
+  ShieldCheck
 } from 'lucide-react';
 import { ConvertedLink } from '../types';
 import { PLATFORMS, copyToClipboard } from '../lib/utils';
@@ -63,6 +65,30 @@ export const ConversionResult: React.FC<ConversionResultProps> = ({ link, onOpen
           <span>Mã QR Code</span>
         </button>
       </div>
+
+      {/* Estimated Cashback Card */}
+      {link.estimatedCashback && link.estimatedCashback > 0 && (
+        <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-500/20 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Coins className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold uppercase text-emerald-600 dark:text-emerald-400 tracking-wider flex items-center gap-1">
+                Hoàn tiền dự kiến
+                <ShieldCheck className="w-3 h-3 text-emerald-500" />
+              </span>
+              <p className="font-extrabold text-sm text-zinc-900 dark:text-white">
+                ~{link.estimatedCashback.toLocaleString('vi-VN')} VNĐ
+              </p>
+            </div>
+          </div>
+
+          <div className="text-right text-[10px] text-zinc-500 dark:text-zinc-400 max-w-[140px] hidden sm:block">
+            Đã tính trừ 10% thuế TNCN tại nguồn & bảo hộ rủi ro.
+          </div>
+        </div>
+      )}
 
       {/* 2. TOP SECTION: Text Snippet Generator (2 Options: Tiêu chuẩn & MXH) */}
       <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 space-y-2">

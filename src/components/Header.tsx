@@ -1,14 +1,16 @@
 import React from 'react';
-import { Sun, Moon, Monitor, Link2 } from 'lucide-react';
-import { ThemeMode } from '../types';
+import { Sun, Moon, Monitor, Link2, Wallet } from 'lucide-react';
+import { ThemeMode, UserWallet } from '../types';
 
 interface HeaderProps {
   theme: ThemeMode;
   setTheme: (theme: ThemeMode) => void;
   convertedCount: number;
+  wallet: UserWallet;
+  onOpenWalletModal: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ theme, setTheme }) => {
+export const Header: React.FC<HeaderProps> = ({ theme, setTheme, wallet, onOpenWalletModal }) => {
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/80 dark:bg-zinc-950/80 border-b border-zinc-200 dark:border-zinc-800/80 transition-colors">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
@@ -22,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ theme, setTheme }) => {
           <div>
             <div className="flex items-baseline gap-2">
               <span className="font-black text-lg tracking-tight text-zinc-900 dark:text-white">
-                Cashback <span className="text-blue-600 dark:text-blue-500">Link</span>
+                Cashback <span className="text-blue-600 dark:text-blue-500">Link v2</span>
               </span>
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 hidden sm:block">
@@ -31,8 +33,19 @@ export const Header: React.FC<HeaderProps> = ({ theme, setTheme }) => {
           </div>
         </div>
 
-        {/* Theme Selector */}
+        {/* Right Actions: Wallet & Theme Selector */}
         <div className="flex items-center gap-2">
+          {/* Wallet Button */}
+          <button
+            onClick={onOpenWalletModal}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold transition-all cursor-pointer"
+            title="Xem ví hoàn tiền"
+          >
+            <Wallet className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Ví: {wallet.availableBalance.toLocaleString('vi-VN')} đ</span>
+          </button>
+
+          {/* Theme Selector */}
           <div className="flex items-center bg-zinc-100 dark:bg-zinc-900/90 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
             <button
               onClick={() => setTheme('light')}
