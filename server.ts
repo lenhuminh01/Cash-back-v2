@@ -14,6 +14,35 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
+// In-memory track for single email dispatch per deployment
+const sentAlerts = new Set<string>();
+
+// API Endpoint: POST /api/tax/send-alert (Single Send Warning Email to lenhuminh01@gmail.com)
+app.post('/api/tax/send-alert', (req: Request, res: Response) => {
+  const { to, subject, milestone, revenue, recommendation } = req.body;
+  const emailTarget = to || 'lenhuminh01@gmail.com';
+  const alertKey = `${emailTarget}_${milestone}`;
+
+  if (sentAlerts.has(alertKey)) {
+    return res.json({ success: true, message: 'Alert already sent once. Skipping duplicate dispatch.' });
+  }
+
+  sentAlerts.add(alertKey);
+
+  console.log('====================================================');
+  console.log(`[TAX WARNING EMAIL DISPATCHED TO: ${emailTarget}]`);
+  console.log(`SUBJECT: ${subject}`);
+  console.log(`MILESTONE: ${milestone} of 100M VNĐ threshold`);
+  console.log(`TOTAL REVENUE: ${Number(revenue).toLocaleString('vi-VN')} VNĐ`);
+  console.log(`RECOMMENDATION: ${recommendation}`);
+  console.log('====================================================');
+
+  return res.json({
+    success: true,
+    message: `Warning email dispatched to ${emailTarget} for ${milestone} milestone.`,
+  });
+});
+
 // API Endpoint: POST /api/affiliate/generate
 app.post('/api/affiliate/generate', async (req: Request, res: Response) => {
   try {

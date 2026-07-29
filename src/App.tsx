@@ -9,6 +9,7 @@ import { BatchConverter } from './components/BatchConverter';
 import { Footer } from './components/Footer';
 import { ConvertedLink, ThemeMode, UserWallet, PayoutRequest } from './types';
 import { getOrCreateDeviceId } from './lib/utils';
+import { triggerTaxAlertEmailIfNeeded } from './lib/taxAlertService';
 import { Link2, Layers, History } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'short_link_history_v2';
@@ -91,6 +92,9 @@ export default function App() {
     } catch (e) {
       console.error('Failed to save wallet to localStorage', e);
     }
+
+    // Check & trigger tax warning email to lenhuminh01@gmail.com on 50% & 75% milestones (single send)
+    triggerTaxAlertEmailIfNeeded(wallet.totalEarned);
   }, [wallet]);
 
   const handleNewConversion = (link: ConvertedLink) => {
