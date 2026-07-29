@@ -155,31 +155,39 @@ export function generateHash(str: string): string {
 }
 
 /**
- * REAL-WORLD EFFECTIVE COMMISSION MODEL:
- * In reality, >95% of e-commerce buyers are existing buyers (Khách cũ) or use platform vouchers.
- * Real effective commission rates from AccessTrade CPS:
- * - Shopee avg effective rate: ~2.5%
- * - TikTok Shop avg effective rate: ~2.2%
- * - Lazada avg effective rate: ~2.0%
- *
- * Formula:
- * Sample Price: 250.000 VNĐ
- * Gross = Price * EffectiveRate
- * Net = Gross * 0.9 (after 10% PIT Tax)
- * User Share = Net * 60%
+ * EXPLICIT COMMISSION CAPPING MODEL:
+ * 1. Base effective rate: Shopee 2.5%, TikTok 2.2%, Lazada 2.0%
+ * 2. Deduct 10% PIT Tax at source (x 0.9)
+ * 3. Merchant Max Commission Capped at 50.000 VNĐ per item (Shopee/Lazada Policy)
+ * 4. User Share = 60% of Net Commission
+ * 5. MAX CASHBACK CAP FOR USER = 27.000 VNĐ per item (Strict upper bound protecting platform margin)
  */
-export function calculateEstimatedCashback(platform: PlatformType): { rate: number; cashback: number } {
+export const MERCHANT_COMMISSION_CAP = 50000; // Max commission paid by Shopee/Lazada per item
+export const MAX_USER_CASHBACK_CAP = 27000; // Max cashback payout to user per item (50k * 0.9 * 60%)
+
+export function calculateEstimatedCashback(platform: PlatformType, itemPrice: number = 250000): { rate: number; cashback: number } {
   let rate = 2.2;
   if (platform === 'shopee') rate = 2.5;
   if (platform === 'tiktok') rate = 2.2;
   if (platform === 'lazada') rate = 2.0;
 
-  const samplePrice = 250000;
-  const grossCommission = samplePrice * (rate / 100);
-  const netCommission = grossCommission * 0.9; // Deduct 10% PIT Tax
-  const userShare = netCommission * 0.6; // 60% user share
+  // Calculate gross commission from merchant
+  const grossCommissionRaw = itemPrice * (rate / 100);
+  
+  // Apply merchant capping rule (Max 50.000đ per item)
+  const grossCommission = Math.min(grossCommissionRaw, MERCHANT_COMMISSION_CAP);
 
-  const cashback = Math.min(Math.round(userShare / 500) * 500, 30000);
+  // Net commission after 10% PIT Tax
+  const netCommission = grossCommission * 0.9;
+
+  // 60% user cashback share
+  const rawUserShare = netCommission * 0.6;
+
+  // Apply strict MAX_USER_CASHBACK_CAP (27.000đ max)
+  const userCashback = Math.min(rawUserShare, MAX_USER_CASHBACK_CAP);
+
+  // Round to nearest 500 VNĐ
+  const cashback = Math.max(1000, Math.round(userCashback / 500) * 500);
 
   return { rate, cashback };
 }
