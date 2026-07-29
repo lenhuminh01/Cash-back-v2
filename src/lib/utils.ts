@@ -155,25 +155,31 @@ export function generateHash(str: string): string {
 }
 
 /**
- * Safe Cashback Calculation Model:
- * 1. Base commission rate: Shopee 7%, TikTok 6%, Lazada 5%
- * 2. Deduct 10% PIT Tax at source (x 0.9)
- * 3. Share 60% with user
- * 4. Cap max cashback per item at 50.000 VNĐ to prevent overflow loss
+ * REAL-WORLD EFFECTIVE COMMISSION MODEL:
+ * In reality, >95% of e-commerce buyers are existing buyers (Khách cũ) or use platform vouchers.
+ * Real effective commission rates from AccessTrade CPS:
+ * - Shopee avg effective rate: ~2.5%
+ * - TikTok Shop avg effective rate: ~2.2%
+ * - Lazada avg effective rate: ~2.0%
+ *
+ * Formula:
+ * Sample Price: 250.000 VNĐ
+ * Gross = Price * EffectiveRate
+ * Net = Gross * 0.9 (after 10% PIT Tax)
+ * User Share = Net * 60%
  */
 export function calculateEstimatedCashback(platform: PlatformType): { rate: number; cashback: number } {
-  let rate = 6.5;
-  if (platform === 'shopee') rate = 7.5;
-  if (platform === 'tiktok') rate = 6.0;
-  if (platform === 'lazada') rate = 5.5;
+  let rate = 2.2;
+  if (platform === 'shopee') rate = 2.5;
+  if (platform === 'tiktok') rate = 2.2;
+  if (platform === 'lazada') rate = 2.0;
 
-  // Assume avg purchase 350.000 VNĐ for estimated display
-  const samplePrice = 350000;
+  const samplePrice = 250000;
   const grossCommission = samplePrice * (rate / 100);
-  const netCommission = grossCommission * 0.9; // After 10% PIT Tax
-  const userShare = netCommission * 0.6; // 60% user cashback
+  const netCommission = grossCommission * 0.9; // Deduct 10% PIT Tax
+  const userShare = netCommission * 0.6; // 60% user share
 
-  const cashback = Math.min(Math.round(userShare / 500) * 500, 50000);
+  const cashback = Math.min(Math.round(userShare / 500) * 500, 30000);
 
   return { rate, cashback };
 }
