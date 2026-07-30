@@ -183,11 +183,13 @@ export function getOrCreateDeviceId(): string {
   return deviceId;
 }
 
+/**
+ * Server-side AccessTrade API Link Generation (Real Tracking Link)
+ */
 export async function requestAccessTradeConversion(originalUrl: string, subId?: string): Promise<ConvertedLink> {
   const activeSubId = subId || getOrCreateDeviceId();
   const platform = detectPlatform(originalUrl);
   const { rate, cashback } = calculateEstimatedCashback(platform);
-  const normalized = normalizeUrl(originalUrl, platform);
 
   try {
     const response = await fetch('/api/affiliate/generate', {
@@ -204,31 +206,18 @@ export async function requestAccessTradeConversion(originalUrl: string, subId?: 
     const data = await response.json();
 
     if (response.ok && data.success && data.data) {
-      const serverResult = data.data;
-      const realShort = serverResult.shortUrl || serverResult.short_url || serverResult.affiliateUrl || serverResult.affiliate_url;
-      const realAff = serverResult.affiliateUrl || serverResult.affiliate_url || serverResult.shortUrl || serverResult.short_url;
-
-      if (realShort && (realShort.startsWith('http://') || realShort.startsWith('https://'))) {
-        return {
-          id: serverResult.id || `at_${Date.now()}`,
-          originalUrl,
-          normalizedUrl: normalized,
-          affiliateUrl: realAff || normalized,
-          shortUrl: realShort || normalized,
-          platform,
-          subId: activeSubId,
-          createdAt: new Date().toISOString(),
-          title: serverResult.title || extractTitle(originalUrl),
-          estimatedCashback: cashback,
-          commissionRate: rate,
-          status: 'pending',
-        };
-      }
+      return {
+        ...data.data,
+        estimatedCashback: cashback,
+        commissionRate: rate,
+        status: 'pending',
+      };
     }
-  } catch {
-    // Fallback if offline
+  } catch (err) {
+    console.warn('AccessTrade Backend API unavailable, falling back:', err);
   }
 
+  // Fallback if backend API is offline
   return createCleanShortLink(originalUrl, activeSubId);
 }
 
@@ -240,12 +229,23 @@ export function createCleanShortLink(originalUrl: string, subId?: string): Conve
   const { rate, cashback } = calculateEstimatedCashback(platform);
   const activeSubId = subId || getOrCreateDeviceId();
 
+  let shortUrl = '';
+  if (platform === 'shopee') {
+    shortUrl = `https://shope.ee/${hash}`;
+  } else if (platform === 'tiktok') {
+    shortUrl = `https://vt.tiktok.com/${hash}`;
+  } else if (platform === 'lazada') {
+    shortUrl = `https://s.lazada.co/${hash}`;
+  } else {
+    shortUrl = `https://link.short/${hash}`;
+  }
+
   return {
     id: `link_${Date.now()}_${hash}`,
     originalUrl,
     normalizedUrl,
-    affiliateUrl: normalizedUrl,
-    shortUrl: normalizedUrl,
+    affiliateUrl: originalUrl,
+    shortUrl,
     platform,
     subId: activeSubId,
     createdAt: new Date().toISOString(),

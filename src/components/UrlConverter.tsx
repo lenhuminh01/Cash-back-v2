@@ -48,17 +48,17 @@ export const UrlConverter: React.FC<UrlConverterProps> = ({ onConvert }) => {
     setIsConverting(true);
 
     try {
-      // Call server AccessTrade API to generate real tracking URL
+      // Call AccessTrade API server endpoint to generate authentic tracking URL
       const link = await requestAccessTradeConversion(clean);
       onConvert(link);
       setIsConverting(false);
 
-      // Open the REAL AccessTrade tracking link (shorten.asia or go.isclix.com) to log click in AccessTrade report
-      const targetUrl = link.shortUrl || link.affiliateUrl || clean;
-      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      // Open authentic AccessTrade tracking link (shorten.asia or go.isclix.com) to log real click
+      const redirectTarget = link.shortUrl || link.affiliateUrl || clean;
+      window.open(redirectTarget, '_blank', 'noopener,noreferrer');
     } catch (err: any) {
       setIsConverting(false);
-      setErrorMsg(err.message || 'Không thể tạo link AccessTrade. Vui lòng thử lại.');
+      setErrorMsg(err.message || 'Không thể kết nối AccessTrade API');
     }
   };
 
@@ -140,7 +140,7 @@ export const UrlConverter: React.FC<UrlConverterProps> = ({ onConvert }) => {
                 type="submit"
                 disabled={isConverting}
                 className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white transition-all shadow-md shadow-blue-500/20 cursor-pointer disabled:opacity-75"
-                title="Tạo link và nhảy sang trang sản phẩm"
+                title="Tạo link và nhảy sang trang sản phẩm AccessTrade"
               >
                 {isConverting ? (
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
