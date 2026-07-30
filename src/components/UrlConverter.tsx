@@ -7,7 +7,7 @@ import {
   Flame
 } from 'lucide-react';
 import { PlatformType, ConvertedLink } from '../types';
-import { detectPlatform, isValidUrl, PLATFORMS, createCleanShortLink, BEST_SELLERS } from '../lib/utils';
+import { detectPlatform, isValidUrl, PLATFORMS, requestAccessTradeConversion, BEST_SELLERS } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface UrlConverterProps {
@@ -33,7 +33,7 @@ export const UrlConverter: React.FC<UrlConverterProps> = ({ onConvert }) => {
     }
   }, [inputUrl]);
 
-  const processUrl = (urlToProcess: string) => {
+  const processUrl = async (urlToProcess: string) => {
     const clean = urlToProcess.trim();
     if (!clean) {
       setErrorMsg('Vui lòng dán hoặc nhập đường link sản phẩm');
@@ -47,14 +47,19 @@ export const UrlConverter: React.FC<UrlConverterProps> = ({ onConvert }) => {
 
     setIsConverting(true);
 
-    setTimeout(() => {
-      const link = createCleanShortLink(clean);
+    try {
+      // Call server AccessTrade API to generate real tracking URL
+      const link = await requestAccessTradeConversion(clean);
       onConvert(link);
       setIsConverting(false);
 
-      // Auto redirect/jump directly to product page
-      window.open(clean, '_blank', 'noopener,noreferrer');
-    }, 150);
+      // Open the REAL AccessTrade tracking link (shorten.asia or go.isclix.com) to log click in AccessTrade report
+      const targetUrl = link.shortUrl || link.affiliateUrl || clean;
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    } catch (err: any) {
+      setIsConverting(false);
+      setErrorMsg(err.message || 'Không thể tạo link AccessTrade. Vui lòng thử lại.');
+    }
   };
 
   const handleAction = async (e?: React.FormEvent) => {

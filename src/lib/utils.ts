@@ -154,16 +154,8 @@ export function generateHash(str: string): string {
   return (positive + 'x9k2m7q').slice(0, 6);
 }
 
-/**
- * EXPLICIT COMMISSION CAPPING MODEL:
- * 1. Base effective rate: Shopee 2.5%, TikTok 2.2%, Lazada 2.0%
- * 2. Deduct 10% PIT Tax at source (x 0.9)
- * 3. Merchant Max Commission Capped at 50.000 VNĐ per item (Shopee/Lazada Policy)
- * 4. User Share = 60% of Net Commission
- * 5. MAX CASHBACK CAP FOR USER = 27.000 VNĐ per item (Strict upper bound protecting platform margin)
- */
-export const MERCHANT_COMMISSION_CAP = 50000; // Max commission paid by Shopee/Lazada per item
-export const MAX_USER_CASHBACK_CAP = 27000; // Max cashback payout to user per item (50k * 0.9 * 60%)
+export const MERCHANT_COMMISSION_CAP = 50000;
+export const MAX_USER_CASHBACK_CAP = 27000;
 
 export function calculateEstimatedCashback(platform: PlatformType, itemPrice: number = 250000): { rate: number; cashback: number } {
   let rate = 2.2;
@@ -171,22 +163,11 @@ export function calculateEstimatedCashback(platform: PlatformType, itemPrice: nu
   if (platform === 'tiktok') rate = 2.2;
   if (platform === 'lazada') rate = 2.0;
 
-  // Calculate gross commission from merchant
   const grossCommissionRaw = itemPrice * (rate / 100);
-  
-  // Apply merchant capping rule (Max 50.000đ per item)
   const grossCommission = Math.min(grossCommissionRaw, MERCHANT_COMMISSION_CAP);
-
-  // Net commission after 10% PIT Tax
   const netCommission = grossCommission * 0.9;
-
-  // 60% user cashback share
   const rawUserShare = netCommission * 0.6;
-
-  // Apply strict MAX_USER_CASHBACK_CAP (27.000đ max)
   const userCashback = Math.min(rawUserShare, MAX_USER_CASHBACK_CAP);
-
-  // Round to nearest 500 VNĐ
   const cashback = Math.max(1000, Math.round(userCashback / 500) * 500);
 
   return { rate, cashback };
@@ -200,6 +181,49 @@ export function getOrCreateDeviceId(): string {
     localStorage.setItem(key, deviceId);
   }
   return deviceId;
+}
+
+export async function requestAccessTradeConversion(originalUrl: string, subId?: string): Promise<ConvertedLink> {
+  const activeSubId = subId || getOrCreateDeviceId();
+  const platform = detectPlatform(originalUrl);
+  const { rate, cashback } = calculateEstimatedCashback(platform);
+
+  try {
+    const response = await fetch('/api/affiliate/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        original_url: originalUrl,
+        sub_id: activeSubId,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success && data.data) {
+      const serverResult = data.data;
+      return {
+        id: serverResult.id || `at_${Date.now()}`,
+        originalUrl,
+        normalizedUrl: normalizeUrl(originalUrl, platform),
+        affiliateUrl: serverResult.affiliateUrl || serverResult.shortUrl || originalUrl,
+        shortUrl: serverResult.shortUrl || serverResult.affiliateUrl || originalUrl,
+        platform,
+        subId: activeSubId,
+        createdAt: new Date().toISOString(),
+        title: serverResult.title || extractTitle(originalUrl),
+        estimatedCashback: cashback,
+        commissionRate: rate,
+        status: 'pending',
+      };
+    }
+  } catch {
+    // Fallback if offline
+  }
+
+  return createCleanShortLink(originalUrl, activeSubId);
 }
 
 export function createCleanShortLink(originalUrl: string, subId?: string): ConvertedLink {
