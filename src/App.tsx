@@ -7,8 +7,9 @@ import { WalletModal } from './components/WalletModal';
 import { HistoryList } from './components/HistoryList';
 import { BatchConverter } from './components/BatchConverter';
 import { Footer } from './components/Footer';
+import { PwaInstallBanner } from './components/PwaInstallBanner';
 import { ConvertedLink, ThemeMode, UserWallet, PayoutRequest } from './types';
-import { getOrCreateDeviceId } from './lib/utils';
+import { getOrCreateDeviceId, createCleanShortLink } from './lib/utils';
 import { triggerTaxAlertEmailIfNeeded } from './lib/taxAlertService';
 import { Link2, Layers, History } from 'lucide-react';
 
@@ -77,6 +78,21 @@ export default function App() {
     }
   }, [theme]);
 
+  // Handle Web Share Target URL (When shared directly from Shopee/TikTok/Lazada app)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sharedUrl = params.get('url') || params.get('text');
+    if (sharedUrl && sharedUrl.includes('http')) {
+      const urlMatch = sharedUrl.match(/https?:\/\/[^\s]+/);
+      if (urlMatch && urlMatch[0]) {
+        const cleanLink = createCleanShortLink(urlMatch[0]);
+        handleNewConversion(cleanLink);
+        // Clean URL params after processing
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, []);
+
   // Sync history & wallet to localStorage
   useEffect(() => {
     try {
@@ -93,7 +109,7 @@ export default function App() {
       console.error('Failed to save wallet to localStorage', e);
     }
 
-    // Check & trigger tax warning email to lenhuminh01@gmail.com on 50% & 75% milestones (single send)
+    // Check & trigger tax warning email to lenhuminh01@gmail.com on 50% & 75% milestones
     triggerTaxAlertEmailIfNeeded(wallet.totalEarned);
   }, [wallet]);
 
@@ -152,6 +168,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 transition-colors font-sans antialiased relative overflow-x-hidden">
+      {/* PWA Install Banner */}
+      <PwaInstallBanner />
+
       {/* Background Glow Elements */}
       <div className="fixed top-0 left-0 w-full h-full opacity-10 dark:opacity-20 pointer-events-none overflow-hidden z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] bg-blue-500 rounded-full blur-[140px]"></div>

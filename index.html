@@ -1,13 +1,36 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Cashback Link v2 — Smart Shopping Tool</title>
+    
+    {/* PWA Manifest & Theme Color */}
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#09090b" />
+    
+    {/* Apple iOS PWA Meta Tags */}
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CashbackLink" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    
+    {/* SEO Meta Tags */}
+    <meta name="description" content="Rút gọn link làm sạch & Tích luỹ hoàn tiền mua sắm Shopee, TikTok Shop, Lazada" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    {/* Service Worker Registration */}
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch((err) => {
+            console.log('SW registration failed: ', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
-
