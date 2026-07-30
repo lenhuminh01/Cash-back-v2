@@ -229,22 +229,15 @@ export function createCleanShortLink(originalUrl: string, subId?: string): Conve
   const { rate, cashback } = calculateEstimatedCashback(platform);
   const activeSubId = subId || getOrCreateDeviceId();
 
-  let shortUrl = '';
-  if (platform === 'shopee') {
-    shortUrl = `https://shope.ee/${hash}`;
-  } else if (platform === 'tiktok') {
-    shortUrl = `https://vt.tiktok.com/${hash}`;
-  } else if (platform === 'lazada') {
-    shortUrl = `https://s.lazada.co/${hash}`;
-  } else {
-    shortUrl = `https://link.short/${hash}`;
-  }
+  // Use shorten.asia format for authentic AccessTrade short link structure
+  const shortUrl = `https://shorten.asia/${hash}`;
+  const affiliateUrl = `https://go.isclix.com/deep_link/5378520536398812039/4751584435713464237?url=${encodeURIComponent(originalUrl)}&sub1=${activeSubId}`;
 
   return {
     id: `link_${Date.now()}_${hash}`,
     originalUrl,
     normalizedUrl,
-    affiliateUrl: originalUrl,
+    affiliateUrl,
     shortUrl,
     platform,
     subId: activeSubId,

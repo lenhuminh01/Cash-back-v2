@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { 
   Copy, 
   Check, 
-  ExternalLink, 
   QrCode, 
   CheckCircle2,
   FileText,
   Coins,
-  ShieldCheck
+  ShieldCheck,
+  ExternalLink
 } from 'lucide-react';
 import { ConvertedLink } from '../types';
 import { PLATFORMS, copyToClipboard } from '../lib/utils';
@@ -36,7 +36,7 @@ export const ConversionResult: React.FC<ConversionResultProps> = ({ link, onOpen
     if (activeSnippetTab === 'social') {
       return `Xem sản phẩm trên ${platformInfo.name}: ${link.shortUrl} #${platformInfo.name.replace(/\s+/g, '')}`;
     }
-    return `🛍️ ${link.title || 'Sản phẩm'}\n🔗 Link: ${link.shortUrl}`;
+    return `🛍️ ${link.title || 'Sản phẩm'}\n🔗 Link mua sắm: ${link.shortUrl}`;
   };
 
   return (
@@ -45,25 +45,50 @@ export const ConversionResult: React.FC<ConversionResultProps> = ({ link, onOpen
       animate={{ opacity: 1, y: 0 }}
       className="w-full bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 shadow-xl border border-zinc-200 dark:border-zinc-800 space-y-5 transition-all"
     >
-      {/* 1. TOP SECTION: Action Buttons (Mở trực tiếp, Mã QR Code) */}
+      {/* 1. TOP SECTION: AccessTrade Tracking Action Buttons */}
       <div className="flex flex-wrap items-center gap-2">
-        <a
-          href={link.normalizedUrl || link.shortUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 min-w-[120px] py-2.5 px-3 rounded-xl text-xs font-semibold bg-zinc-900 hover:bg-black text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+        {/* Copy Official AccessTrade Short Link */}
+        <button
+          onClick={() => handleCopy(link.shortUrl, 'short')}
+          className={`flex-1 min-w-[140px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs ${
+            copiedType === 'short'
+              ? 'bg-emerald-600 text-white'
+              : 'bg-blue-600 hover:bg-blue-700 text-white'
+          }`}
         >
-          <ExternalLink className="w-3.5 h-3.5" />
-          <span>Mở Trực Tiếp ↗</span>
-        </a>
+          {copiedType === 'short' ? (
+            <>
+              <Check className="w-4 h-4" />
+              <span>Đã copy Short Link!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4" />
+              <span>Copy Short Link (Có Hoa Hồng)</span>
+            </>
+          )}
+        </button>
 
+        {/* QR Code Button */}
         <button
           onClick={() => onOpenQrModal(link)}
-          className="flex-1 min-w-[120px] py-2.5 px-3 rounded-xl text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          className="py-2.5 px-4 rounded-xl text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
         >
           <QrCode className="w-3.5 h-3.5 text-blue-500" />
           <span>Mã QR Code</span>
         </button>
+
+        {/* Open AccessTrade Short Link directly */}
+        <a
+          href={link.shortUrl || link.affiliateUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="py-2.5 px-4 rounded-xl text-xs font-semibold bg-zinc-900 text-white hover:bg-black dark:bg-white dark:text-zinc-900 transition-colors flex items-center justify-center gap-1.5 shrink-0"
+          title="Mở đường link AccessTrade để tính hoa hồng"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          <span>Mở Link</span>
+        </a>
       </div>
 
       {/* Estimated Cashback Card */}
@@ -138,7 +163,7 @@ export const ConversionResult: React.FC<ConversionResultProps> = ({ link, onOpen
         </div>
       </div>
 
-      {/* 3. BOTTOM SECTION: Success Banner & Links */}
+      {/* 3. BOTTOM SECTION: Success Banner & AccessTrade Links */}
       <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
         {/* Success Header & Platform Badge */}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -148,9 +173,9 @@ export const ConversionResult: React.FC<ConversionResultProps> = ({ link, onOpen
             </div>
             <div>
               <h3 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
-                Tạo Link Thành Công
+                Tạo Link AccessTrade Thành Công
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
-                  Đã làm sạch tracking
+                  Gắn mã hoàn tiền
                 </span>
               </h3>
             </div>
@@ -161,12 +186,11 @@ export const ConversionResult: React.FC<ConversionResultProps> = ({ link, onOpen
           </div>
         </div>
 
-        {/* Link Output Cards */}
+        {/* AccessTrade Short Link Display */}
         <div className="space-y-3">
-          {/* Short Link */}
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              Short Link Rút Gọn
+              Short Link AccessTrade (Ghi nhận click & hoa hồng)
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -191,31 +215,9 @@ export const ConversionResult: React.FC<ConversionResultProps> = ({ link, onOpen
                 ) : (
                   <>
                     <Copy className="w-4 h-4" />
-                    <span>Copy Short</span>
+                    <span>Copy Short Link</span>
                   </>
                 )}
-              </button>
-            </div>
-          </div>
-
-          {/* Full Clean URL */}
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-              Đường Link Chuẩn (Đã xoá tham số rác)
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                readOnly
-                value={link.normalizedUrl}
-                className="flex-1 py-2 px-3 rounded-lg text-[11px] font-mono bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 select-all focus:outline-none truncate"
-              />
-              <button
-                onClick={() => handleCopy(link.normalizedUrl, 'raw')}
-                className="px-3 py-2 rounded-lg text-xs font-medium bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
-              >
-                {copiedType === 'raw' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>Copy Link</span>
               </button>
             </div>
           </div>
